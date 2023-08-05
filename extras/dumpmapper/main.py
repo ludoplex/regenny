@@ -56,7 +56,7 @@ def main(input=None, pid=None):
             print("[-] Failed to open process")
             return
         else:
-            print("[+] Opened process " + str(pid) + " with handle " + str(hex(process)))
+            print(f"[+] Opened process {str(pid)} with handle {hex(process)}")
             has_process = True
 
 
@@ -72,7 +72,9 @@ def main(input=None, pid=None):
 
     # Check if the file is a 64 bit file
     if pe.OPTIONAL_HEADER.Magic != 0x20b:
-        print("[-] File is not a 64 bit file, not supported. Magic: " + str(hex(pe.OPTIONAL_HEADER.Magic)))
+        print(
+            f"[-] File is not a 64 bit file, not supported. Magic: {hex(pe.OPTIONAL_HEADER.Magic)}"
+        )
         return
 
     print(pe.NT_HEADERS)
@@ -86,17 +88,17 @@ def main(input=None, pid=None):
     for section  in pe.sections:
         total_virtual_size += section.Misc_VirtualSize
 
-    print("[+] Total virtual size: " + str(hex(total_virtual_size)))
+    print(f"[+] Total virtual size: {hex(total_virtual_size)}")
 
     # Align the virtual size to the section alignment in pe.OPTIONAL_HEADER.SectionAlignment
     alignment = pe.OPTIONAL_HEADER.SectionAlignment
     total_virtual_size = (total_virtual_size + alignment - 1) & ~(alignment - 1)
 
-    print("[+] Aligned virtual size: " + str(hex(total_virtual_size)))
+    print(f"[+] Aligned virtual size: {hex(total_virtual_size)}")
 
     if (total_virtual_size < pe.OPTIONAL_HEADER.SizeOfImage):
         total_virtual_size = pe.OPTIONAL_HEADER.SizeOfImage
-        print("[+] Fixed total virtual size to: " + str(hex(total_virtual_size)))
+        print(f"[+] Fixed total virtual size to: {hex(total_virtual_size)}")
 
     if not has_process:
         addr = VirtualAlloc(imagebase, total_virtual_size, MEM_COMMIT_RESERVE, PAGE_READWRITE_EXECUTE)
@@ -104,10 +106,10 @@ def main(input=None, pid=None):
         addr = VirtualAllocEx(process, imagebase, total_virtual_size, MEM_COMMIT_RESERVE, PAGE_READWRITE_EXECUTE)
 
     if addr == 0:
-        print("[-] Failed to allocate memory for " + input)
+        print(f"[-] Failed to allocate memory for {input}")
         return
 
-    print("[+] Allocated memory at: " + str(hex(addr)))
+    print(f"[+] Allocated memory at: {hex(addr)}")
 
     # Write the headers to the start of the allocated space
     # TODO
@@ -115,10 +117,10 @@ def main(input=None, pid=None):
     # Get the sections, and write them to memory
     for section in pe.sections:
         print("[+] Writing section: " + section.Name.decode("utf-8"))
-        print("[+]  Section virtual address: " + str(hex(section.VirtualAddress)))
-        print("[+]  Section virtual size: " + str(hex(section.Misc_VirtualSize)))
-        print("[+]  Section raw size: " + str(hex(section.SizeOfRawData)))
-        print("[+]  Buffer address: " + str(hex(addr + section.VirtualAddress)))
+        print(f"[+]  Section virtual address: {hex(section.VirtualAddress)}")
+        print(f"[+]  Section virtual size: {hex(section.Misc_VirtualSize)}")
+        print(f"[+]  Section raw size: {hex(section.SizeOfRawData)}")
+        print(f"[+]  Buffer address: {hex(addr + section.VirtualAddress)}")
 
         size = section.SizeOfRawData
 
@@ -130,7 +132,14 @@ def main(input=None, pid=None):
         section_data = pe.get_data(section.VirtualAddress, size)
 
         # Copy the section data into buf (aka the allocated space)
-        print("[+]  Writing section " + section.Name.decode("utf-8") + " to: " + str(hex(addr + section.VirtualAddress)) + " to " + str(hex(addr + section.VirtualAddress + size)))
+        print(
+            "[+]  Writing section "
+            + section.Name.decode("utf-8")
+            + " to: "
+            + hex(addr + section.VirtualAddress)
+            + " to "
+            + hex(addr + section.VirtualAddress + size)
+        )
 
         if not has_process:
             ctypes.memmove(addr + section.VirtualAddress, section_data, size)
@@ -139,7 +148,7 @@ def main(input=None, pid=None):
             WriteProcessMemory(process, addr + section.VirtualAddress, section_data, size, ctypes.byref(written))
 
 
-    print("[+] Memory is allocated at " + str(hex(addr)))
+    print(f"[+] Memory is allocated at {hex(addr)}")
     os.system("pause")
 
 
